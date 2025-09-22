@@ -1,0 +1,70 @@
+#########################################################
+# Invidious configuration file (template)
+# - Keep other fields from the project's config.example.yml
+# - Replace placeholders in UPPERCASE only as instructed
+# - Sensitive values should be provided via environment variables (see docker-compose.yml)
+#########################################################
+
+# Database
+db:
+  dbname: invidious
+  user: invidious
+  password: "${POSTGRES_PASSWORD}"   # injected by Coolify secret
+  host: invidious-db
+  port: 5432
+
+# Basic site info
+domain: "yt.cudasystems.net"        # your public hostname
+https_only: false                   # Cloudflare provides TLS at the edge; set true only if serving tls locally
+external_port: 443
+check_tables: true
+
+# General UI options (tweak as you like)
+title: "cudasystems Invidious"
+description: "Private front-end to YouTube — yt.cudasystems.net"
+language: "en"
+
+# YouTube API (Google Cloud API key)
+# - Recommended to reduce scraping issues and rate limits.
+# - Keep as env var and mark secret in Coolify.
+youtube_api_key: "${YOUTUBE_API_KEY}"  # set as Coolify secret
+
+# Companion / signature handling (recommended)
+# The companion handles po_token/visitor_data and signature needs.
+invidious_companion:
+  - private_url: "http://companion:8282"
+    public_url: "https://yt.cudasystems.net"
+
+# Companion secret that both companion & invidious share
+invidious_companion_key: "${COMPANION_SECRET}"  # set in Coolify secrets
+
+# Optional: manual tokens (only if you're not running companion)
+# po_token: "PASTE_PO_TOKEN_HERE"
+# visitor_data: "PASTE_VISITOR_DATA_HERE"
+
+# Other playback signature config (if you use signature server)
+# signature_server: "http://127.0.0.1:8080"
+
+# Logging / rate limits
+log_level: "info"
+rate_limiter:
+  enabled: true
+  # tweak if you hit rate limits on your VPS
+
+# Storage / cache (use the default paths inside container)
+cache_enabled: true
+
+# Email / admin (if you want administration features)
+# admin: "you@your.email"
+# send_email_on_error: true
+
+#########################################################
+# DO NOT put plaintext secrets here in the repo.
+# Use Coolify Secrets (or environment) for:
+#   - POSTGRES_PASSWORD
+#   - YOUTUBE_API_KEY
+#   - COMPANION_SECRET
+#########################################################
+
+# Any other settings from config.example.yml you want should be copied below.
+# In particular, keep other options such as 'youtube_dl', 'open_graph', etc. from the example.
