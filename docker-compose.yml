@@ -1,55 +1,51 @@
 version: "3.8"
+
 services:
-  invidious:
-    image: quay.io/invidious/invidious:latest
+  invidious-db:
+    image: postgres:14
+    container_name: invidious-db
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:3000:3000"
     environment:
-      INVIDIOUS_CONFIG: |
-        db:
-          dbname: invidious
-          user: kemal
-          password: kemal
-          host: invidious-db
-          port: 5432
-        check_tables: true
-        invidious_companion:
-          - private_url: "http://companion:8282/companion"
-        invidious_companion_key: "${COMPANION_KEY}"
-        hmac_key: "${HMAC_KEY}"
-        domain: "yt.cudasystems.net"
-        https_only: true
-        external_port: 443
-        use_pubsub_feeds: true
-    depends_on:
-      - invidious-db
-      - companion
+      POSTGRES_DB: invidious
+      POSTGRES_USER: invidious
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"   # provide via Coolify secret
+    volumes:
+      - postgresdata:/var/lib/postgresql/data
+      # DB init scripts - pull from upstream invidious repo (ensure these exist)
+      - ./docker/init-invidious-db.sh:/docker-entrypoint-initdb.d/init-invidious-db.sh:ro
+      - ./config/sql:/docker-entrypoint-initdb.d/sql:ro
 
   companion:
     image: quay.io/invidious/invidious-companion:latest
+    container_name: invidious-companion
     restart: unless-stopped
     environment:
-      - SERVER_SECRET_KEY=${COMPANION_KEY}
+      SERVER_SECRET_KEY: "${COMPANION_SECRET}"   # provide via Coolify secret
     ports:
-      - "127.0.0.1:8282:8282"
+      - "127.0.0.1:8282:8282"   # bound to localhost only (Cloudflare Tunnel proxies to invidious)
     volumes:
-      - companioncache:/var/tmp/youtubei.js:rw
-    cap_drop:
-      - ALL
-    read_only: true
+      - companioncache:/var/tmp/youtubei.js
 
-  invidious-db:
-    image: postgres:14
+  invidious:
+    image: quay.io/invidious/invidious:latest
+    container_name: invidious
     restart: unless-stopped
+    depends_on:
+      - invidious-db
+      - companion
+    ports:
+      - "127.0.0.1:3000:3000"   # bind to localhost so only the tunnel exposes it
     volumes:
-      - postgresdata:/var/lib/postgresql/data
-      - ./config/sql:/config/sql
-      - ./docker/init-invidious-db.sh:/docker-entrypoint-initdb.d/init-invidious-db.sh
+      - ./config.yml:/invidious/config/config.yml:ro
     environment:
-      POSTGRES_DB: invidious
-      POSTGRES_USER: kemal
-      POSTGRES_PASSWORD: kemal
+      # optional shortcuts - the main config is the mounted config.yml
+      YOUTUBE_API_KEY: "${YOUTUBE_API_KEY}"
+      COMPANION_SECRET: "${COMPANION_SECRET}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000/api/v1/trending || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
 volumes:
   postgresdata:
