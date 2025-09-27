@@ -2,29 +2,27 @@ version: "3.8"
 
 services:
   invidious-db:
-    image: postgres:14
+    image: postgres:15
     container_name: invidious-db
     restart: unless-stopped
     environment:
       POSTGRES_DB: invidious
       POSTGRES_USER: invidious
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"   # provide via Coolify secret
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
     volumes:
-      - postgresdata:/var/lib/postgresql/data
-      # DB init scripts - pull from upstream invidious repo (ensure these exist)
-      - ./docker/init-invidious-db.sh:/docker-entrypoint-initdb.d/init-invidious-db.sh:ro
-      - ./config/sql:/docker-entrypoint-initdb.d/sql:ro
+      - invidious-db-data:/var/lib/postgresql/data
 
   companion:
     image: quay.io/invidious/invidious-companion:latest
     container_name: invidious-companion
     restart: unless-stopped
     environment:
-      SERVER_SECRET_KEY: "${COMPANION_SECRET}"   # provide via Coolify secret
+      # secret used to secure companion <-> invidious
+      SERVER_SECRET_KEY: "${COMPANION_SECRET}"
     ports:
-      - "127.0.0.1:8282:8282"   # bound to localhost only (Cloudflare Tunnel proxies to invidious)
+      - "127.0.0.1:8282:8282"   # localhost only
     volumes:
-      - companioncache:/var/tmp/youtubei.js
+      - companion-cache:/var/tmp/youtubei.js
 
   invidious:
     image: quay.io/invidious/invidious:latest
@@ -34,13 +32,22 @@ services:
       - invidious-db
       - companion
     ports:
-      - "127.0.0.1:3000:3000"   # bind to localhost so only the tunnel exposes it
+      - "127.0.0.1:3000:3000"   # bind to localhost only
     volumes:
-      - ./config.yml:/invidious/config/config.yml:ro
+      - ./config.yml:/invidious/config/config.yml:ro   # optional, if you maintain a config file in repo
     environment:
-      # optional shortcuts - the main config is the mounted config.yml
+      # Minimal overrides; the real configuration lives in config.yml or above envs
       YOUTUBE_API_KEY: "${YOUTUBE_API_KEY}"
       COMPANION_SECRET: "${COMPANION_SECRET}"
+      # If you prefer to inline the config instead of mounting config.yml, you can set INVIDIOUS_CONFIG here
+      # INVIDIOUS_CONFIG: |
+      #    db:
+      #      dbname: invidious
+      #      user: invidious
+      #      password: "${POSTGRES_PASSWORD}"
+      #      host: invidious-db
+      #    domain: "yt.cudasystems.net"
+      #    https_only: false
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000/api/v1/trending || exit 1"]
       interval: 30s
@@ -48,5 +55,5 @@ services:
       retries: 3
 
 volumes:
-  postgresdata:
-  companioncache:
+  invidious-db-data:
+  companion-cache:
