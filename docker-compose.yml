@@ -1,36 +1,35 @@
-version: "3.7"
+version: "3.8"
 
 services:
   invidious-db:
-    image: postgres:15
+    image: postgres:14
     container_name: invidious-db
+    restart: always
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: invidious
     volumes:
       - pgdata:/var/lib/postgresql/data
-    restart: unless-stopped
 
   invidious:
     image: quay.io/invidious/invidious:latest
     container_name: invidious
+    restart: always
     depends_on:
       - invidious-db
     environment:
+      INVIDIOUS_CONFIG: /invidious/config/config.yml
       INVIDIOUS_DB_HOST: invidious-db
+      INVIDIOUS_DB_NAME: invidious
       INVIDIOUS_DB_USER: ${POSTGRES_USER}
-      INVIDIOUS_DB_PASSWORD: ${POSTGRES_PASSWORD}
-      INVIDIOUS_DB_NAME: ${POSTGRES_DB}
-
-      # Secrets pulled from Coolify env manager
-      INVIDIOUS_HMAC_KEY: ${INVIDIOUS_HMAC_KEY}
-      INVIDIOUS_COOKIE_SECRET: ${INVIDIOUS_COOKIE_SECRET}
-      INVIDIOUS_YT_API_KEY: ${YOUTUBE_API_KEY}
-
+      INVIDIOUS_DB_PASS: ${POSTGRES_PASSWORD}
+      YT_API_KEY: ${YT_API_KEY}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
     ports:
       - "3000:3000"
-    restart: unless-stopped
+    volumes:
+      - ./config:/invidious/config
 
 volumes:
   pgdata:
