@@ -1,4 +1,4 @@
-version: "3.8"
+version: "3.9"
 
 services:
   invidious-db:
@@ -26,6 +26,8 @@ services:
       INVIDIOUS_DB_PASS: ${POSTGRES_PASSWORD}
       YT_API_KEY: ${YT_API_KEY}
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      INVIDIOUS_DOMAIN: ${INVIDIOUS_DOMAIN}
+      PORT: 3000
     ports:
       - "3000:3000"
     volumes:
