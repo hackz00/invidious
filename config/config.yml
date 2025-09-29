@@ -1,0 +1,25 @@
+# Invidious configuration file
+
+db:
+  user: invidious
+  password: $s1xs3v3n$
+  host: invidious-db
+  dbname: invidious
+  port: 5432
+
+check_tables: true
+
+full_refresh: false
+
+https_only: true
+
+# Public URL for your instance
+domain: yt.cudasystems.net
+
+# Optional, helps API usage
+use_pubsub_feeds: true
+
+# Cache directory inside container
+cache: /invidious/cache
+
+hmac_key: "changeme"   # can be anything, not sensitive
